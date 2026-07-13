@@ -13,9 +13,23 @@ class StudentBaseModel(BaseModel):
     gpa: float = Field(..., ge=0.0, le=4.0,
                        description="GPA phải nằm trong khoảng từ 0.0 đến 4.0")
 
+    class Config:
+        from_attributes = True
+
 
 class StudentBaseCreate(StudentBaseModel):
     pass
+
+
+class StudentResponse(BaseModel):
+    id: int
+    full_name: str
+    email: str
+    major: str
+    gpa: float
+
+    class Config:
+        from_attributes = True
 
 
 class StudentBaseUpdat(BaseModel):

@@ -1,11 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from models.student import StudentManagement
-from schemas.student import StudentBaseCreate, StudentBaseUpdat
+from schemas.student import StudentBaseCreate, StudentBaseUpdat, StudentResponse
 
 
 def get_all_students(db: Session):
-    return db.query(StudentManagement).all(), None
+    students = db.query(StudentManagement).all()
+    return [StudentResponse.model_validate(s) for s in students], None
 
 
 def get_student_by_id(db: Session, student_id: int):
@@ -13,7 +14,7 @@ def get_student_by_id(db: Session, student_id: int):
         StudentManagement.id == student_id).first()
     if not student:
         return None, "Student Not Found"
-    return student, None
+    return StudentResponse.model_validate(student), None
 
 
 def create_student(db: Session, student_in: StudentBaseCreate):
@@ -22,7 +23,7 @@ def create_student(db: Session, student_in: StudentBaseCreate):
     try:
         db.commit()
         db.refresh(new_student)
-        return new_student, None
+        return StudentResponse.model_validate(new_student), None
     except IntegrityError:
         db.rollback()
         return None, "Email already registered"
@@ -32,9 +33,10 @@ def create_student(db: Session, student_in: StudentBaseCreate):
 
 
 def update_student(db: Session, student_id: int, student_in: StudentBaseUpdat):
-    student, err = get_student_by_id(db, student_id)
-    if err:
-        return None, err
+    student = db.query(StudentManagement).filter(
+        StudentManagement.id == student_id).first()
+    if not student:
+        return None, "Student Not Found"
 
     try:
         update_data = student_in.model_dump(exclude_unset=True)
@@ -42,7 +44,7 @@ def update_student(db: Session, student_id: int, student_in: StudentBaseUpdat):
             setattr(student, key, value)
         db.commit()
         db.refresh(student)
-        return student, None
+        return StudentResponse.model_validate(student), None
     except IntegrityError:
         db.rollback()
         return None, "Email already exists in another student"
@@ -52,9 +54,10 @@ def update_student(db: Session, student_id: int, student_in: StudentBaseUpdat):
 
 
 def delete_student(db: Session, student_id: int):
-    student, err = get_student_by_id(db, student_id)
-    if err:
-        return None, err
+    student = db.query(StudentManagement).filter(
+        StudentManagement.id == student_id).first()
+    if not student:
+        return None, "Student Not Found"
 
     try:
         db.delete(student)
